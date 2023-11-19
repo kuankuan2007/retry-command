@@ -37,6 +37,9 @@ Retry Command provides several options to customize the behavior of retries:
 - `-t, --time-out`: Timeout for each execution in seconds. Set to -1 for no timeout.
 - `-d, --cwd`: Current working directory for the command.
 - `-n, --success-return-code`: Return codes that indicate success. Multiple values can be specified.
+- `-q --quite`: mute more output.
+- `--mute`: mute all output.
+- `-l, --no-need-to-log`: Does not output any records outside of stdou. It only works when mute is on.
 - `-c, --command`: Command to execute.
 
 ## Examples
