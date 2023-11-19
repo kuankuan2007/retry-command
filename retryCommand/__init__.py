@@ -5,6 +5,9 @@ import os
 import rich
 import time
 import io
+import doFolder
+import tempfile
+import threading
 
 def ordinalInt(value:int):
         number=str(value)
@@ -16,7 +19,28 @@ def ordinalInt(value:int):
         elif (number.endswith("3")):
             suffix="rd"
         return number+suffix
-
+class _outputControl:
+    def __init__(self,mute,quite,noNeedToLog) -> None:
+        self.mute=mute
+        self.quite=quite
+        self.noNeedToLog=noNeedToLog
+        if not self.noNeedToLog and self.mute:
+            self.tempdir=doFolder.Path.add(doFolder.Path(tempfile.gettempdir()),f"retryCommand-{time.time()}-{os.getpid()}")
+            os.makedirs(self.tempdir)
+            self.tempfolder=doFolder.Folder(self.tempdir)
+            self.outputs=self.tempfolder.createFolder("outputs")
+            rich.print(f"[yellow]Output are saved in {self.outputs.path}[/yellow]")
+    def output(self,*arg,**kw):
+        if self.quite or self.mute:
+            return
+        rich.print(*arg,**kw)
+    def getStdout(self,id:int):
+        if self.mute and self.noNeedToLog:
+            return subprocess.DEVNULL
+        elif self.mute:
+            return open(self.outputs.createFile(f"stdout-{id}.txt").path,"w")
+        else:
+            return None
 def retryCommand():
     argparser = argparse.ArgumentParser()
     argparser.add_argument('-s', '--no-stop-after-success',action='store_true',default=False,required=False,help="no stop after success")
@@ -28,28 +52,27 @@ def retryCommand():
     argparser.add_argument('-n','--success-return-code', required=False,nargs="+",type=int,action="extend",default=[0],help="current working directory")
     argparser.add_argument('-q','--quiet',action='store_true',default=False,required=False,help="mute more output")
     argparser.add_argument('--mute',required=False,default=False,action="store_true",help="mute all output")
+    argparser.add_argument('-l','--no-need-to-log',required=False,default=False,action="store_true",help="Does not output any records outside of stdou. It only works when mute is on.")
     argparser.add_argument('-o','--overwrite-stdin',nargs="*",action="extend",default=[],help="overwrite stdin")
     argparser.add_argument('-c', '--command',nargs=argparse.REMAINDER, required=True,help="command to execute")
     args=argparser.parse_args(sys.argv[1:]).__dict__
     
     if args['time_out']==-1:
         args['time_out']=None
-    
-    
-    def output(*arg,**kw):
-        if (not args['quiet'] and not args['mute']):
-            rich.print(*arg,**kw)
+
     
     i=0
     
-    stdout=io.BytesIO() if args['mute'] else None
-    
+    ioControl=_outputControl(mute=args['mute'],quite=args['quiet'],noNeedToLog=args['no_need_to_log'])
+    output=ioControl.output
+
     while args['max_num_of_retry']==-1 or i<args['max_num_retries']:
         i+=1
         output(f"[bold blue]the {ordinalInt(i)} attempt:[/bold blue]")
         try:
+            stdout=ioControl.getStdout(i)
             popen=subprocess.Popen(args["command"],cwd=args["cwd"],stdout=stdout,stderr=stdout)
-            print(stdout)
+            # print(stdout)
         except BaseException as e:
             output(f"[bold red]failed to execute command[/bold red]")
             output(f"[red]{e.__class__.__name__}:{e}[/red]")
