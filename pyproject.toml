@@ -20,10 +20,8 @@ classifiers = [
     "Operating System :: POSIX :: Linux",
     "Operating System :: Microsoft :: Windows",
 ]
-keywords = ["folder", "file", "manage", "filesystem", 'directory']
-dependencies = [
-    "rich",
-]
+keywords = ["cli", "command line", "retry", "rich"]
+dependencies = ["rich"]
 license-files = ["LICENSE"]
 
 [project.urls]
@@ -32,9 +30,3 @@ Issues = "https://github.com/kuankuan2007/retry-command/issues"
 
 [project.scripts]
 do-retry = "retryCommand.__main__:main"
-
-[tool.mypy]
-
-python_version = "3.12"
-
-exclude = ['^testcases\.py$']
